@@ -270,6 +270,8 @@ if __name__ == "__main__":
     start_elem = load_state(args.url_file)
     start_chnk = start_elem // args.chunk_size
 
+    f_json = open("./one.json" ,"w")
+
     # URLs we haven't scraped yet (if first run, all URLs in file)
     with open(args.url_file) as fh:
         url_entries = load_urls(fh, args.max_urls)
@@ -335,6 +337,13 @@ if __name__ == "__main__":
                     cur.execute("insert or ignore into metadata (fid, url, domain, elapsed, word_count, scraper, success) values (?, ?, ?, ?, ?, ?, ?)", params)
                 conn.commit()
 
+            dump_chunk = []
+            for text, meta, fid, _ in filter(lambda x: x, cdata):
+                if text:
+                    line_json = {"text": text, "url": meta["url"]}
+                    dump_chunk.append(json.dumps(line_json)+'\n')
+            f_json.writelines(dump_chunk)
+
             # archive and save this chunk to file
             if args.compress:
                 tqdm.write("Compressing...")
@@ -344,5 +353,5 @@ if __name__ == "__main__":
             tqdm.write("{} out of {} URLs yielded content\n".format(len(list(filter(lambda x: x and x[0], cdata))), len(chunk)))
 
             save_state(args.url_file, cid * args.chunk_size)
-
+        f_json.close()
         print("Done!")
